@@ -91,19 +91,22 @@ sds sdsnewlen(const void *init, size_t initlen) {
     int hdrlen = sdsHdrSize(type);
     unsigned char *fp; /* flags pointer. */
 
-    sh = s_malloc(hdrlen+initlen+1);
+    sh = s_malloc(hdrlen+initlen+1); //兼容C标准字符串，+1末尾放置null
     if (!init)
         memset(sh, 0, hdrlen+initlen+1);
     if (sh == NULL) return NULL;
-    s = (char*)sh+hdrlen;
-    fp = ((unsigned char*)s)-1;
+    s = (char*)sh+hdrlen; // s指向数据区域头部
+    fp = ((unsigned char*)s)-1; // fp指向数据区域前一个字节
     switch(type) {
-        case SDS_TYPE_5: {
+        case SDS_TYPE_5: { // TYPE_5 32字节 0 | len << 3 高5位是字符串长度 低3位是字符串类型（长度类型）
             *fp = type | (initlen << SDS_TYPE_BITS);
             break;
         }
         case SDS_TYPE_8: {
             SDS_HDR_VAR(8,s);
+            //struct sdshdr8 *sh = (void*)((s)-(sizeof(struct sdshdr8)));
+            // 将长度信息、容量、类型写入头部
+            // 构成len,alloc,type,data
             sh->len = initlen;
             sh->alloc = initlen;
             *fp = type;
@@ -134,7 +137,7 @@ sds sdsnewlen(const void *init, size_t initlen) {
     if (initlen && init)
         memcpy(s, init, initlen);
     s[initlen] = '\0';
-    return s;
+    return s; // 返回的s指向data，兼容C语言的字符串，头部信息保留在前面，通过指针访问
 }
 
 /* Create an empty (zero length) sds string. Even in this case the string
